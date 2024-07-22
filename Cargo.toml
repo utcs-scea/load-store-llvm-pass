@@ -1,0 +1,11 @@
+[package]
+name = "load-store-llvm-pass"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+llvm-plugin = { git = "https://github.com/jamesmth/llvm-plugin-rs", rev = "bf6b4d7", features = ["llvm18-0"] }
+either = "1.13.0"
