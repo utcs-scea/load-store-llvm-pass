@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdint.h>
+#include <stdio.h>
 
 uint64_t hello = 5;
 
@@ -39,6 +40,18 @@ void* __pando__replace_loadptr(void** src) {
 }
 
 int main() {
-  uint64_t* ptr_blah = globalify(&hello);
-  assert(check_if_global(ptr_blah));
+  int testing = 78 + hello;
+  hello = testing + 10;
+
+  // CURRENT WORK-AROUND:
+  uint64_t* alpha = globalify(&hello);
+  printf("test alpha: check_if_global(alpha) returns %d, pointer is: %p\n", check_if_global(alpha), (void*) alpha);
+  assert(check_if_global(alpha));
+
+  // EVENTUAL DESIRED BEHAVIOR:
+  uint64_t* bravo = &hello;
+  printf("test bravo: check_if_global(bravo) returns %d, pointer is %p\n", check_if_global(bravo), (void*) bravo);
+  assert(check_if_global(bravo));
+
+  return testing;
 }
