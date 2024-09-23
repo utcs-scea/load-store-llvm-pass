@@ -40,18 +40,13 @@ void* __pando__replace_loadptr(void** src) {
 }
 
 int main() {
-  int testing = 78 + hello;
-  hello = testing + 10;
-
   // CURRENT WORK-AROUND:
-  uint64_t* alpha = globalify(&hello);
-  printf("test alpha: check_if_global(alpha) returns %d, pointer is: %p\n", check_if_global(alpha), (void*) alpha);
-  assert(check_if_global(alpha));
+  // uint64_t* alpha = globalify(&hello);
+  // printf("test alpha: check_if_global(alpha) returns %d, pointer is: %p\n", check_if_global(alpha), (void*) alpha);
+  // assert(check_if_global(alpha));
 
   // EVENTUAL DESIRED BEHAVIOR:
   uint64_t* bravo = &hello;
   printf("test bravo: check_if_global(bravo) returns %d, pointer is %p\n", check_if_global(bravo), (void*) bravo);
   assert(check_if_global(bravo));
-
-  return testing;
 }
