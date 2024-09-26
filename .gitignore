@@ -1,4 +1,6 @@
+/.cache
+/build/*
 /target
-*.out
-*.ll
+/*.out
+/*.ll
 

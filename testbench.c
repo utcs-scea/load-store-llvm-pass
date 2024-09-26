@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdint.h>
+#include <stdio.h>
 
 uint64_t hello = 5;
 
@@ -25,6 +26,11 @@ void __pando__replace_store64(uint64_t val, uint64_t* dst) {
   *(uint64_t*) deglobalify(dst) = val;
 }
 
+void __pando__replace_store32(uint32_t val, uint64_t* dst) {
+  assert(check_if_global(dst));
+  *(uint64_t*) deglobalify(dst) = val;
+}
+
 void __pando__replace_storeptr(void* val, void** dst) {
   assert(check_if_global(dst));
   *(void**) deglobalify(dst) = val;
@@ -34,11 +40,16 @@ uint64_t __pando__replace_load64(uint64_t* src) {
   return *(uint64_t*) deglobalify(src);
 }
 
+uint32_t __pando__replace_load32(uint32_t* src) {
+  return *(uint32_t*) deglobalify(src);
+}
+
 void* __pando__replace_loadptr(void** src) {
   return *(uint64_t**) deglobalify(src);
 }
 
 int main() {
-  uint64_t* ptr_blah = globalify(&hello);
-  assert(check_if_global(ptr_blah));
+  uint64_t* bravo = &hello;
+  assert(check_if_global(bravo));
+  printf("hello is == %llu.\n", *bravo);
 }

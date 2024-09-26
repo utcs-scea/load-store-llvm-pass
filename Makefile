@@ -1,22 +1,51 @@
+CC = clang-18
+OPT = opt
 
+OPTFLAGS += --load-pass-plugin=./target/debug/libload_store_llvm_pass.dylib
+OPTFLAGS += --load-pass-plugin=./build/LLVMGlobalizePass.so
+OPTFLAGS += --passes=globalize-pass,load-store-pass
+OPTFLAGS += -S
+
+all: clean build_passes a.out
+
+o0: clean build_passes a.u.out
+
+
+# build rust and c++ pass files
+build_passes:
+	cd build && cmake .. && make
+	cargo build
+
+
+# build O3
 a.out: a.out.ll
-	clang-18 -O3 $? -o $@ -flto
-a.out.ll: load_patch.ll
-	clang-18 -O3 $? -o $@ -S -emit-llvm -flto
+	$(CC) -O3 $? -flto -o $@
 
-main.ll: main.c
-	clang-18 -O3 $? -S -emit-llvm -o $@
+a.out.ll: testbench_passes_run.ll
+	$(CC) -S -O3 $? -flto -o $@ -emit-llvm 
 
-load_patch.ll: main.ll ./src/lib.rs
-	cargo build
-	opt-18 --load-pass-plugin=./target/debug/libload_store_llvm_pass.so --passes=load-store-pass $< -S -o $@
+testbench_passes_run.ll: testbench.ll ./src/lib.rs
+	$(OPT) $(OPTFLAGS) $< -o $@
 
-load_patch.u.ll: main.u.ll ./src/lib.rs
-	cargo build
-	opt-18 --load-pass-plugin=load-store-llvm-pass/target/debug/libload_store_llvm_pass.so --passes=load-store-pass $< -S -o $@
+testbench.ll: testbench.c
+	$(CC) -S -O3 $? -o $@ -emit-llvm
 
-main.u.ll: main.c
-	clang-18 -O0 $? -S -emit-llvm -o $@
 
+# build O0
+a.u.out: a.u.out.ll
+	$(CC) -O0 $? -flto -o $@
+
+a.u.out.ll: testbench_passes_run.u.ll
+	$(CC) -S -O0 $? -flto -o $@ -emit-llvm 
+
+testbench_passes_run.u.ll: testbench.u.ll ./src/lib.rs
+	$(OPT) $(OPTFLAGS) $< -o $@
+	
+testbench.u.ll: testbench.c
+	$(CC) -S -O0 $? -o $@ -emit-llvm
+
+
+# clean
 clean:
-	rm -f *.ll *.out
+	rm -rf *.ll *.out
+	cd build && make clean
