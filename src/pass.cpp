@@ -14,33 +14,25 @@ namespace {
 struct GlobalizePass : public PassInfoMixin<GlobalizePass> {
 
 static bool processInstruction(Module &m, IRBuilder<> &builder,
-                                Function *globalifyFunc, Instruction &i) {
+                               Function *globalifyFunc, Function *deglobalifyFunc, Instruction &instr) {
     bool oneConstGlobalified = false;
-    unsigned numOperands = i.getNumOperands();
-    // errs() << "\n(globalify-consts pass) -- new instr. num operands is "
-        // << numOperands << ". instr is " << i << "\n";
+
+    unsigned numOperands = instr.getNumOperands();
+    uint64_t instrOpcode = instr.getOpcode();
 
     // iterate through the operands
     for (unsigned operandIndex = 0; operandIndex < numOperands; operandIndex++) {
-        Value *operand = i.getOperand(operandIndex);
+        Value *operand = instr.getOperand(operandIndex);
         assert(operand);
 
         Type *type = operand->getType();
         assert(type);
 
-        // errs() << "\n  (globalify-consts pass) -- operand #" << operandIndex
-            // << ", data is " << *operand << "\n";
-
         if (type->isPointerTy()) {
-
-            // errs() << "\n  (globalify-consts pass) -- operand is of type pointer" << "\n";
-
             if (!isa<Constant>(operand)) {
                 // operand is not const. do not globalify.
                 continue;
             }
-
-            // errs() << "\n  (globalify-consts pass) -- operand is const" << "\n";
 
             auto *gv = dyn_cast<GlobalVariable>(operand);
             if (!gv || gv->getName().empty()) {
@@ -48,36 +40,48 @@ static bool processInstruction(Module &m, IRBuilder<> &builder,
                 continue;
             }
 
-            // TODO: REMOVE LATER
-            if (gv->getName() != "hello") {
-                continue;
-            }
-
-            // errs() << "  (globalify-consts pass) -- ptr + const + labelled. "
-            //         "globalify it.\n";
+            // operand is a const global pointer. globalify it.
 
             oneConstGlobalified = true;
-            builder.SetInsertPoint(&i);
-
-            // errs() << "  (globalify-consts pass) -- build "
-            //         "globalify_invocation_instr\n";
+            builder.SetInsertPoint(&instr);
 
             Value *globalifyInvocationInstr = builder.CreateCall(
                 globalifyFunc, {operand}, "globalified_ptr");
 
-            // errs() << "  (globalify-consts pass) -- set the operand\n";
-            
-            i.setOperand(operandIndex, globalifyInvocationInstr);
+            // @Sun: this logic may not be correct long-term depending on how we implement
+            // global/local addresses across function boundaries, especially regarding
+            // library functions.
+            if (instrOpcode == Instruction::Call) {
+                if (operand->getType()->isPointerTy()) {
+                    // we just deglobalize it for use inside the function
 
-            // errs() << "  (globalify-consts pass) -- done!\n";
+                    // @Sun: this is kinda gross and we should change this later.
+                    
+                    Value* deglobalifyInvocationInstr = builder.CreateCall(
+                        deglobalifyFunc, 
+                        {globalifyInvocationInstr}, 
+                        "deglobalified_ptr"
+                    );
+
+                    instr.setOperand(operandIndex, deglobalifyInvocationInstr);
+                } else {
+                    // add a load which will get transformed by the load/store pass
+                    LoadInst* load_instr = builder.CreateLoad(
+                    type, globalifyInvocationInstr, "globalified_ptr_loaded");
+
+                    instr.setOperand(operandIndex, load_instr);
+                }
+            } else {
+                instr.setOperand(operandIndex, globalifyInvocationInstr);
+            }
 
         } else if (auto *constExpr = dyn_cast<ConstantExpr>(operand)) {
-            // handle the constexpr as an operand case here
+            // handle the constexpr-as-an-operand case. 
+            // the constexpr can contain references to globals.
 
-            // errs() << "  (globalify-consts pass) -- operand is a ConstantExpr\n";
-
-            if(constExpr->getOpcode() == Instruction::ICmp) {
-                // errs() << "  (globalify-consts pass) -- operand's opcode is ICmp\n";
+            // so far, we only care about ICmp instructions as constexpr operands.
+                // *there likely will be more.*
+            if (constExpr->getOpcode() == Instruction::ICmp) {
 
                 Value* lhs = constExpr->getOperand(0);
                 Value* rhs = constExpr->getOperand(1);
@@ -86,7 +90,7 @@ static bool processInstruction(Module &m, IRBuilder<> &builder,
                     continue;
                 }
 
-                builder.SetInsertPoint(&i);
+                builder.SetInsertPoint(&instr);
 
                 if (isa<GlobalVariable>(lhs)) {
                     lhs = builder.CreateCall(globalifyFunc, {lhs}, "globalified_lhs");
@@ -103,29 +107,34 @@ static bool processInstruction(Module &m, IRBuilder<> &builder,
                     "lowered_icmp"
                 );
 
-                i.setOperand(operandIndex, new_instr);
+                instr.setOperand(operandIndex, new_instr);
             }
-        } else if (auto *bbOperand = dyn_cast<BasicBlock>(operand)) {
-            oneConstGlobalified |=
-                processBasicBlock(m, builder, globalifyFunc, *bbOperand);
         }
     }
     return oneConstGlobalified;
 }
 
 static bool processBasicBlock(Module &m, IRBuilder<> &builder,
-                                Function *globalifyFunc, BasicBlock &bb) {
+                              Function *globalifyFunc, Function *deglobalifyFunc, BasicBlock &bb) {
     bool oneConstGlobalified = false;
     for (Instruction &i : bb) {
-        oneConstGlobalified |= processInstruction(m, builder, globalifyFunc, i);
+        oneConstGlobalified |= processInstruction(m, builder, globalifyFunc, deglobalifyFunc, i);
     }
     return oneConstGlobalified;
 }
 
 PreservedAnalyses run(Module &m, ModuleAnalysisManager &mam) {
     bool oneConstGlobalified = false;
+
     Function *globalifyFunc = m.getFunction("globalify");
     if (!globalifyFunc) {
+        errs() << "[GLOBALIZE PASS] -- globalify function not found. exiting early.\n";
+        return PreservedAnalyses::all();
+    }
+
+    Function *deglobalifyFunc = m.getFunction("deglobalify");
+    if (!globalifyFunc) {
+        errs() << "[GLOBALIZE PASS] -- deglobalify function not found. exiting early.\n";
         return PreservedAnalyses::all();
     }
 
@@ -133,8 +142,10 @@ PreservedAnalyses run(Module &m, ModuleAnalysisManager &mam) {
 
     for (Function &f : m) {
         if (f.getName() == "__pando__replace_load64" ||
+            f.getName() == "__pando__replace_load32" ||
             f.getName() == "__pando__replace_loadptr" ||
             f.getName() == "__pando__replace_store64" ||
+            f.getName() == "__pando__replace_store32" ||
             f.getName() == "__pando__replace_storeptr" ||
             f.getName() == "check_if_global" || 
             f.getName() == "deglobalify" ||
@@ -143,7 +154,7 @@ PreservedAnalyses run(Module &m, ModuleAnalysisManager &mam) {
         }
 
         for (BasicBlock &bb : f) {
-            oneConstGlobalified |= processBasicBlock(m, builder, globalifyFunc, bb);
+            oneConstGlobalified |= processBasicBlock(m, builder, globalifyFunc, deglobalifyFunc, bb);
         }
     }
 

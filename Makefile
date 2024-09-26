@@ -3,11 +3,12 @@ OPT = opt
 
 OPTFLAGS += --load-pass-plugin=./target/debug/libload_store_llvm_pass.dylib
 OPTFLAGS += --load-pass-plugin=./build/LLVMGlobalizePass.so
-OPTFLAGS += --passes=load-store-pass,globalize-pass
+OPTFLAGS += --passes=globalize-pass,load-store-pass
 OPTFLAGS += -S
 
-
 all: clean build_passes a.out
+
+o0: clean build_passes a.u.out
 
 
 # build rust and c++ pass files
