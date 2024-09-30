@@ -21,30 +21,48 @@ void* globalify(void* ptr) {
   return (void *) (p | mask);
 }
 
-void __pando__replace_store64(uint64_t val, uint64_t* dst) {
+void __pando__replace_store_int64(uint64_t val, uint64_t* dst) {
   assert(check_if_global(dst));
   *(uint64_t*) deglobalify(dst) = val;
 }
 
-void __pando__replace_store32(uint32_t val, uint64_t* dst) {
+void __pando__replace_store_int32(uint32_t val, uint32_t* dst) {
   assert(check_if_global(dst));
-  *(uint64_t*) deglobalify(dst) = val;
+  *(uint32_t*) deglobalify(dst) = val;
 }
 
-void __pando__replace_storeptr(void* val, void** dst) {
+void __pando__replace_store_int8(uint8_t val, uint8_t* dst) {
+  assert(check_if_global(dst));
+  *(uint8_t*) deglobalify(dst) = val;
+}
+
+void __pando__replace_store_float32(float val, float* dst) {
+  assert(check_if_global(dst));
+  *(float*) deglobalify(dst) = val;
+}
+
+void __pando__replace_store_ptr(void* val, void** dst) {
   assert(check_if_global(dst));
   *(void**) deglobalify(dst) = val;
 }
 
-uint64_t __pando__replace_load64(uint64_t* src) {
+uint64_t __pando__replace_load_int64(uint64_t* src) {
   return *(uint64_t*) deglobalify(src);
 }
 
-uint32_t __pando__replace_load32(uint32_t* src) {
+uint32_t __pando__replace_load_int32(uint32_t* src) {
   return *(uint32_t*) deglobalify(src);
 }
 
-void* __pando__replace_loadptr(void** src) {
+uint8_t __pando__replace_load_int8(uint8_t* src) {
+  return *(uint8_t*) deglobalify(src);
+}
+
+float __pando__replace_load_float32(float* src) {
+  return *(float*) deglobalify(src);
+}
+
+void* __pando__replace_load_ptr(void** src) {
   return *(uint64_t**) deglobalify(src);
 }
 
