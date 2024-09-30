@@ -45,6 +45,10 @@ testbench.u.ll: testbench.c
 	$(CC) -S -O0 $? -o $@ -emit-llvm
 
 
+# run tests
+test:
+	cd tests && ./run_tests.sh
+
 # clean
 clean:
 	rm -rf *.ll *.out

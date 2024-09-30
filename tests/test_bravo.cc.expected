@@ -1,0 +1,2 @@
+global_a: 5, global_b: 3.14, global_c: X
+global_a: 10, global_b: 4.14, global_c: Y

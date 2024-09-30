@@ -4,3 +4,7 @@
 /*.out
 /*.ll
 
+# tests
+tests/*.out
+tests/*.ll
+tests/*.binary
