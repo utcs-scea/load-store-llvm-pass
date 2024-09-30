@@ -8,3 +8,6 @@
 tests/*.out
 tests/*.ll
 tests/*.binary
+
+# local testing dir for sun
+sun_testing/

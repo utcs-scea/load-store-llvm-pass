@@ -1,4 +1,0 @@
-Initial state: Counter: 0, Factor: 1.50, Flag: N
-After incrementing: Counter: 3, Factor: 1.50, Flag: N
-After applying factor: Counter: 4, Factor: 1.50, Flag: N
-After toggling flag and increasing factor: Counter: 4, Factor: 2.00, Flag: Y
