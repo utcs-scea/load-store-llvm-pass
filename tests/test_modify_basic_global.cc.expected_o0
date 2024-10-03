@@ -1,0 +1,26 @@
+   >> globalify() invoked
+   >> __pando__replace_store_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
+   >> globalify() invoked
+   >> __pando__replace_load_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
+   >> globalify() invoked
+   >> deglobalify() invoked
+Initial value: 10
+   >> globalify() invoked
+   >> __pando__replace_load_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
+   >> globalify() invoked
+   >> __pando__replace_store_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
+   >> globalify() invoked
+   >> __pando__replace_load_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
+   >> globalify() invoked
+   >> deglobalify() invoked
+After modification: 15
