@@ -1,9 +1,8 @@
 CC = clang-18
 OPT = opt
 
-OPTFLAGS += --load-pass-plugin=../target/debug/libload_store_llvm_pass.dylib
-OPTFLAGS += --load-pass-plugin=../build/LLVMGlobalizePass.so
-OPTFLAGS += --passes=globalize-pass,load-store-pass
+GLOBALIZEPASS += --load-pass-plugin=../build/LLVMGlobalizePass.so --passes=globalize-pass
+LOADSTOREPASS += --load-pass-plugin=../target/debug/libload_store_llvm_pass.dylib --passes=load-store-pass
 
 test: clean
 	./run_tests.sh
@@ -20,15 +19,17 @@ pando_functions.ll: pando_functions.cc
 run_test: pando_functions.ll
 	$(CC) -S -O3 $(testfile) -emit-llvm -o $(testfile).base.ll
 	llvm-link -S $(testfile).base.ll pando_functions.ll -o $(testfile).linked.ll
-	$(OPT) -S $(OPTFLAGS) $(testfile).linked.ll -o $(testfile).passes_run.ll
-	$(CC) -S -O3 -flto $(testfile).passes_run.ll -emit-llvm -o $(testfile).final.ll
+	$(OPT) -S $(GLOBALIZEPASS) $(testfile).linked.ll -o $(testfile).globalized.ll
+	$(OPT) -S $(LOADSTOREPASS) $(testfile).globalized.ll -o $(testfile).load_store.ll
+	$(CC) -S -O3 -flto $(testfile).load_store.ll -emit-llvm -o $(testfile).final.ll
 	$(CC) -O3 -flto $(testfile).final.ll -o $(testfile).binary
 
 run_test_o0: pando_functions.ll
 	$(CC) -S -O0 $(testfile) -emit-llvm -o $(testfile).base.ll
 	llvm-link -S $(testfile).base.ll pando_functions.ll -o $(testfile).linked.ll
-	$(OPT) -S $(OPTFLAGS) $(testfile).linked.ll -o $(testfile).passes_run.ll
-	$(CC) -S -O0 -flto $(testfile).passes_run.ll -emit-llvm -o $(testfile).final.ll
+	$(OPT) -S $(GLOBALIZEPASS) $(testfile).linked.ll -o $(testfile).globalized.ll
+	$(OPT) -S $(LOADSTOREPASS) $(testfile).globalized.ll -o $(testfile).load_store.ll
+	$(CC) -S -O0 -flto $(testfile).load_store.ll -emit-llvm -o $(testfile).final.ll
 	$(CC) -O0 -flto $(testfile).final.ll -o $(testfile).binary
 
 clean:

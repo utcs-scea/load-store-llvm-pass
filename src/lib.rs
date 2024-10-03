@@ -1,6 +1,7 @@
 use llvm_plugin::inkwell::module::Module;
-use llvm_plugin::inkwell::types::AnyTypeEnum;
-use llvm_plugin::inkwell::values::{BasicMetadataValueEnum, BasicValueEnum, InstructionOpcode, InstructionValue, PointerValue};
+use llvm_plugin::inkwell::types::{AnyTypeEnum, BasicType};
+use llvm_plugin::inkwell::values::{BasicMetadataValueEnum, BasicValueEnum, CallSiteValue, InstructionOpcode, InstructionValue, PointerValue};
+use llvm_plugin::inkwell::AddressSpace;
 use llvm_plugin::{
     LlvmModulePass, ModuleAnalysisManager, PassBuilder, PipelineParsing, PreservedAnalyses
 };
@@ -31,11 +32,14 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
   let loadsi8_func = module.get_function("__pando__replace_load_int8").unwrap();
   let loadsfl32_func = module.get_function("__pando__replace_load_float32").unwrap();
   let loadsptr_func = module.get_function("__pando__replace_load_ptr").unwrap();
+  let loadsvector_func = module.get_function("__pando__replace_load_vector").unwrap();
   let storei64_func = module.get_function("__pando__replace_store_int64").unwrap();
   let storei32_func = module.get_function("__pando__replace_store_int32").unwrap();
   let storei8_func = module.get_function("__pando__replace_store_int8").unwrap();
   let storefl32_func = module.get_function("__pando__replace_store_float32").unwrap();
   let storeptr_func = module.get_function("__pando__replace_store_ptr").unwrap();
+  let storevector_func = module.get_function("__pando__replace_store_vector").unwrap();
+  
 
   let cx = module.get_context();
   let builder = cx.create_builder();
@@ -50,11 +54,13 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
       "__pando__replace_load_int8" => continue,
       "__pando__replace_load_float32" => continue,
       "__pando__replace_load_ptr" => continue,
+      "__pando__replace_load_vector" => continue,
       "__pando__replace_store_int64" => continue,
       "__pando__replace_store_int32" => continue,
       "__pando__replace_store_int8" => continue,
       "__pando__replace_store_float32" => continue,
       "__pando__replace_store_ptr" => continue,
+      "__pando__replace_store_vector" => continue,
       "check_if_global" => continue,
       "deglobalify" => continue,
       "globalify" => continue,
@@ -75,7 +81,7 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
             let operand = instr.get_operand(0).unwrap().left().unwrap();
 
             match operand {
-              BasicValueEnum::PointerValue(ptr_val) => {
+              BasicValueEnum::PointerValue(_) => {
                 // figure out which function we should use to load to this operand
                 let func = match instr.get_type() {
                   AnyTypeEnum::PointerType(_) => loadsptr_func,
@@ -93,16 +99,45 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
                     },
                   },
                   AnyTypeEnum::FloatType(_) => loadsfl32_func,
-                  AnyTypeEnum::VectorType(_) => loadsptr_func,
+                  AnyTypeEnum::VectorType(_) => loadsvector_func,
                   _ => loadsi64_func,
                 };
 
                 // build a call to the chosen loader function to load this operand 
-                let replace_instr: InstructionValue = match builder
-                  .build_direct_call(func, &[BasicMetadataValueEnum::PointerValue(ptr_val)], "loads_func")
-                  .unwrap()
-                  .try_as_basic_value() {
-                    Either::Left(basic_value) => {
+                let func_call: CallSiteValue =  match instr.get_type() {
+                  AnyTypeEnum::VectorType(vec_type) => {
+                    builder.build_direct_call(
+                      func,
+                      &[
+                        operand.into(), 
+                        vec_type.get_element_type().size_of().unwrap().into(), 
+                        cx.i64_type().const_int(vec_type.get_size().into(), false).into()
+                      ],
+                      "loads_func"
+                    )
+                  },
+                  _ => {
+                    builder.build_direct_call(
+                      func,
+                      &[operand.into()],
+                      "loads_func"
+                    )
+                  }
+                }.unwrap();
+
+                // extract the result of the function call as an instruction
+                let replace_instr: InstructionValue = match func_call.try_as_basic_value() {
+                  Either::Left(basic_value) => match instr.get_type() {
+                    AnyTypeEnum::VectorType(vec_type) => {
+                      builder.build_load(vec_type, 
+                                         basic_value.into_pointer_value(),
+                                         "loaded_vector")
+                        .unwrap()
+                        .into_vector_value()
+                        .as_instruction()
+                        .unwrap()
+                    }, 
+                    _ => {
                       if basic_value.is_pointer_value() {
                         basic_value.into_pointer_value().as_instruction().unwrap()
                       } else if basic_value.is_int_value() {
@@ -112,10 +147,11 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
                       } else {
                         panic!("This is unreachable for the call type")
                       }
-                    }
-                    Either::Right(instr_value) => {instr_value}
+                    },
+                  },
+                  Either::Right(instr_value) => {instr_value}
                 };
-
+                  
                 // replace the load instruction with our new loader function call.
                 instr.replace_all_uses_with(&replace_instr);
                 instr.erase_from_basic_block();
@@ -157,33 +193,68 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
                 },
               },
               BasicValueEnum::FloatValue(_) => storefl32_func,
+              BasicValueEnum::VectorValue(_) => storevector_func,
               _ => {
                 panic!("Unreachable {:#?}", operand0)
               },
             };
-
+        
             // build a call to the chosen storing function to store this operand 
-            let replace_instr: InstructionValue = match builder
-              .build_direct_call(func,
-                &[BasicMetadataValueEnum::try_from(operand0).unwrap(), BasicMetadataValueEnum::try_from(operand1).unwrap()],
-                "stores_func")
-              .unwrap()
-              .try_as_basic_value() {
-                Either::Left(basic_value) => {
-                  if basic_value.is_pointer_value() {
-                    basic_value.into_pointer_value().as_instruction().unwrap()
-                  } else if basic_value.is_int_value() {
-                    basic_value.into_int_value().as_instruction().unwrap()
-                  } else if basic_value.is_float_value() {
-                    basic_value.into_float_value().as_instruction().unwrap()
-                  } else {
-                    panic!("This is unreachable for the call type")
-                  }
-                },
-                Either::Right(instr_value) => instr_value,
-            };
+            let func_call: CallSiteValue = match operand0 {
+                BasicValueEnum::VectorValue(vec_val) => {
+                  let vec_type = vec_val.get_type();
+                  
+                  builder.position_before(&instr);
 
-            // replace the store instruction with our new storing function call.
+                  let alloca_buffer = builder.build_alloca(vec_type, "alloca_buffer").unwrap();
+                  builder.build_store(alloca_buffer, vec_val).unwrap();
+
+                  let ptr_type = cx.ptr_type(AddressSpace::from(0));
+                  let casted_alloca_buffer = builder
+                    .build_bit_cast(alloca_buffer, ptr_type, "casted_alloca_buffer").unwrap();
+
+                  builder.position_at(b, &instr);
+
+                  builder.build_direct_call(
+                    func,
+                    &[
+                      casted_alloca_buffer.into(),
+                      operand1.into(),
+                      vec_type.get_element_type().size_of().unwrap().into(),
+                      cx.i64_type().const_int(vec_type.get_size().into(), false).into()
+                    ],
+                    "vec_stores_func"
+                  )
+                },
+                _ => {
+                  builder.build_direct_call(
+                    func,
+                    &[operand0.into(), operand1.into()],
+                    "stores_func"
+                  )
+                }
+              }.unwrap();
+            
+            // extract the result of the function call as an instruction
+            let replace_instr = match func_call.try_as_basic_value() {
+              Either::Left(basic_value) => {
+                if basic_value.is_pointer_value() {
+                  basic_value.into_pointer_value().as_instruction().unwrap()
+                } else if basic_value.is_int_value() {
+                  basic_value.into_int_value().as_instruction().unwrap()
+                } else if basic_value.is_float_value() {
+                  basic_value.into_float_value().as_instruction().unwrap()
+                } else if basic_value.is_vector_value() {
+                  println!("[LOAD-STORE PASS] We should not get a vector type back from a store.");
+                  panic!("This is unreachable for the call type.")
+                } else {
+                  panic!("This is unreachable for the call type.")
+                }
+              },
+              Either::Right(instr_value) => instr_value,
+            };
+               
+            // replace the store instruction with the result of our new storing function call.
             instr.replace_all_uses_with(&replace_instr);
             instr.erase_from_basic_block();
           }, // end: InstructionOpcode::Store

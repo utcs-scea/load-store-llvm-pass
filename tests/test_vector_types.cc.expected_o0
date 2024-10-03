@@ -6,28 +6,7 @@
    >> deglobalify() invoked
    >> globalify() invoked
    >> deglobalify() invoked
-Initial array:    >> __pando__replace_store_int32() invoked
-   >> check_if_global() invoked
-   >> deglobalify() invoked
-   >> __pando__replace_load_int32() invoked
-   >> check_if_global() invoked
-   >> deglobalify() invoked
-   >> globalify() invoked
-   >> __pando__replace_load_ptr() invoked
-   >> check_if_global() invoked
-   >> deglobalify() invoked
-   >> globalify() invoked
-   >> __pando__replace_load_int32() invoked
-   >> check_if_global() invoked
-   >> deglobalify() invoked
-   >> __pando__replace_load_int32() invoked
-   >> check_if_global() invoked
-   >> deglobalify() invoked
-   >> globalify() invoked
-   >> deglobalify() invoked
-1    >> __pando__replace_load_int32() invoked
-   >> check_if_global() invoked
-   >> deglobalify() invoked
+Initial array: 
    >> __pando__replace_store_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -47,7 +26,8 @@ Initial array:    >> __pando__replace_store_int32() invoked
    >> deglobalify() invoked
    >> globalify() invoked
    >> deglobalify() invoked
-2    >> __pando__replace_load_int32() invoked
+1 
+   >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> __pando__replace_store_int32() invoked
@@ -69,7 +49,8 @@ Initial array:    >> __pando__replace_store_int32() invoked
    >> deglobalify() invoked
    >> globalify() invoked
    >> deglobalify() invoked
-3    >> __pando__replace_load_int32() invoked
+2 
+   >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> __pando__replace_store_int32() invoked
@@ -91,7 +72,8 @@ Initial array:    >> __pando__replace_store_int32() invoked
    >> deglobalify() invoked
    >> globalify() invoked
    >> deglobalify() invoked
-4    >> __pando__replace_load_int32() invoked
+3 
+   >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> __pando__replace_store_int32() invoked
@@ -113,7 +95,8 @@ Initial array:    >> __pando__replace_store_int32() invoked
    >> deglobalify() invoked
    >> globalify() invoked
    >> deglobalify() invoked
-5    >> __pando__replace_load_int32() invoked
+4 
+   >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> __pando__replace_store_int32() invoked
@@ -123,12 +106,10 @@ Initial array:    >> __pando__replace_store_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> globalify() invoked
-   >> deglobalify() invoked
-
-   >> globalify() invoked
-   >> __pando__replace_store_int32() invoked
+   >> __pando__replace_load_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
+   >> globalify() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -136,34 +117,18 @@ Initial array:    >> __pando__replace_store_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> globalify() invoked
+   >> deglobalify() invoked
+5 
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> __pando__replace_store_int32() invoked
-   >> check_if_global() invoked
-   >> deglobalify() invoked
-   >> __pando__replace_load_int32() invoked
-   >> check_if_global() invoked
-   >> deglobalify() invoked
-   >> __pando__replace_store_int32() invoked
-   >> check_if_global() invoked
-   >> deglobalify() invoked
-   >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> globalify() invoked
-   >> __pando__replace_load_int32() invoked
-   >> check_if_global() invoked
-   >> deglobalify() invoked
-   >> __pando__replace_store_int32() invoked
-   >> check_if_global() invoked
-   >> deglobalify() invoked
-   >> __pando__replace_load_int32() invoked
-   >> check_if_global() invoked
-   >> deglobalify() invoked
    >> __pando__replace_store_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -227,9 +192,48 @@ Initial array:    >> __pando__replace_store_int32() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
+   >> __pando__replace_load_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
+   >> globalify() invoked
+   >> __pando__replace_load_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
+   >> __pando__replace_store_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
+   >> __pando__replace_load_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
+   >> __pando__replace_store_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
+   >> __pando__replace_load_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
+   >> __pando__replace_load_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
+   >> globalify() invoked
+   >> __pando__replace_load_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
+   >> __pando__replace_store_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
+   >> __pando__replace_load_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
+   >> __pando__replace_store_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
+   >> __pando__replace_load_int32() invoked
+   >> check_if_global() invoked
+   >> deglobalify() invoked
    >> globalify() invoked
    >> deglobalify() invoked
-Modified array:    >> __pando__replace_store_int32() invoked
+Modified array: 
+   >> __pando__replace_store_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> __pando__replace_load_int32() invoked
@@ -244,7 +248,8 @@ Modified array:    >> __pando__replace_store_int32() invoked
    >> deglobalify() invoked
    >> globalify() invoked
    >> deglobalify() invoked
-2    >> __pando__replace_load_int32() invoked
+2 
+   >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> __pando__replace_store_int32() invoked
@@ -262,7 +267,8 @@ Modified array:    >> __pando__replace_store_int32() invoked
    >> deglobalify() invoked
    >> globalify() invoked
    >> deglobalify() invoked
-4    >> __pando__replace_load_int32() invoked
+4 
+   >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> __pando__replace_store_int32() invoked
@@ -280,7 +286,8 @@ Modified array:    >> __pando__replace_store_int32() invoked
    >> deglobalify() invoked
    >> globalify() invoked
    >> deglobalify() invoked
-6    >> __pando__replace_load_int32() invoked
+6 
+   >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> __pando__replace_store_int32() invoked
@@ -298,7 +305,8 @@ Modified array:    >> __pando__replace_store_int32() invoked
    >> deglobalify() invoked
    >> globalify() invoked
    >> deglobalify() invoked
-8    >> __pando__replace_load_int32() invoked
+8 
+   >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> __pando__replace_store_int32() invoked
@@ -316,7 +324,8 @@ Modified array:    >> __pando__replace_store_int32() invoked
    >> deglobalify() invoked
    >> globalify() invoked
    >> deglobalify() invoked
-10    >> __pando__replace_load_int32() invoked
+10 
+   >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> __pando__replace_store_int32() invoked
@@ -325,6 +334,3 @@ Modified array:    >> __pando__replace_store_int32() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
-   >> globalify() invoked
-   >> deglobalify() invoked
-

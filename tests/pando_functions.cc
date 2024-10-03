@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 extern "C" {
 
@@ -53,6 +54,13 @@ void __pando__replace_store_ptr(void* val, void** dst) {
   *(void**) deglobalify(dst) = val;
 }
 
+void __pando__replace_store_vector(void* val, void* dst, size_t element_size,
+                                   size_t num_elements) {
+  printf("  >> __pando__replace_store_vector invoked\n");
+  assert(check_if_global(dst));
+  memcpy(deglobalify(dst), val, element_size * num_elements);
+}
+
 uint64_t __pando__replace_load_int64(uint64_t* src) {
   printf("   >> __pando__replace_load_int64() invoked\n");
   assert(check_if_global(src));
@@ -81,6 +89,15 @@ void* __pando__replace_load_ptr(void** src) {
   printf("   >> __pando__replace_load_ptr() invoked\n");
   assert(check_if_global(src));
   return globalify(*(uint64_t**) deglobalify(src));
+}
+
+void* __pando__replace_load_vector(void* src, size_t element_size, 
+                                   size_t num_elements) {
+  printf("  >> __pando__replace_load_vector invoked\n");
+  assert(check_if_global(src));
+  // later, if not local, we will need to allocate memory 
+  // and actually do the remote load.
+  return deglobalify(src);
 }
 
 } // extern "C"
