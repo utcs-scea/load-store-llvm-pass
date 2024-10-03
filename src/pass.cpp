@@ -141,12 +141,16 @@ PreservedAnalyses run(Module &m, ModuleAnalysisManager &mam) {
     IRBuilder<> builder(m.getContext());
 
     for (Function &f : m) {
-        if (f.getName() == "__pando__replace_load64" ||
-            f.getName() == "__pando__replace_load32" ||
-            f.getName() == "__pando__replace_loadptr" ||
-            f.getName() == "__pando__replace_store64" ||
-            f.getName() == "__pando__replace_store32" ||
-            f.getName() == "__pando__replace_storeptr" ||
+        if (f.getName() == "__pando__replace_load_int64" ||
+            f.getName() == "__pando__replace_load_int32" ||
+            f.getName() == "__pando__replace_load_int8" ||
+            f.getName() == "__pando__replace_load_float32" ||
+            f.getName() == "__pando__replace_load_ptr" ||
+            f.getName() == "__pando__replace_store_int64" ||
+            f.getName() == "__pando__replace_store_int32" ||
+            f.getName() == "__pando__replace_store_int8" ||
+            f.getName() == "__pando__replace_store_float32" ||
+            f.getName() == "__pando__replace_store_ptr" ||
             f.getName() == "check_if_global" || 
             f.getName() == "deglobalify" ||
             f.getName() == "globalify") {
