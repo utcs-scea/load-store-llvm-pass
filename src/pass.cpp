@@ -1,5 +1,6 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/Passes/PassBuilder.h"
@@ -28,7 +29,58 @@ static bool processInstruction(Module &m, IRBuilder<> &builder,
         Type *type = operand->getType();
         assert(type);
 
-        if (type->isPointerTy()) {
+        if (auto *constExpr = dyn_cast<ConstantExpr>(operand)) {
+            // handle the constexpr-as-an-operand case. 
+            // the constexpr can contain references to globals.
+
+            // so far, we only care about ICmp and GEP instructions as constexpr operands.
+                // *there likely will be more.*
+            if (constExpr->getOpcode() == Instruction::ICmp) {
+
+                Value* lhs = constExpr->getOperand(0);
+                Value* rhs = constExpr->getOperand(1);
+
+                if (!isa<GlobalVariable>(lhs) && !isa<GlobalVariable>(rhs)) {
+                    continue;
+                }
+
+                builder.SetInsertPoint(&instr);
+
+                if (isa<GlobalVariable>(lhs)) {
+                    lhs = builder.CreateCall(globalifyFunc, {lhs}, "globalified_lhs");
+                }
+
+                if (isa<GlobalVariable>(rhs)) {
+                    rhs = builder.CreateCall(globalifyFunc, {rhs}, "globalified_rhs");
+                }
+
+                Value* newInstr = builder.CreateICmp(
+                    static_cast<ICmpInst::Predicate>(constExpr->getPredicate()), 
+                    lhs, 
+                    rhs, 
+                    "lowered_icmp"
+                );
+
+                instr.setOperand(operandIndex, newInstr);
+            } else if (constExpr->getOpcode() == Instruction::GetElementPtr) {
+                Value* gep_ptr = constExpr->getOperand(0);
+                Type* gep_ptr_type = gep_ptr->getType();
+
+                if (auto gv = dyn_cast<GlobalVariable>(gep_ptr)) {
+                    gep_ptr = builder.CreateCall(globalifyFunc, {gep_ptr}, "globalified_gep_ptr");
+                    gep_ptr_type = gv->getValueType();
+                }
+                    
+                std::vector<Value*> idxList;
+                for(uint64_t i = 1; i < constExpr->getNumOperands(); i++) {
+                    idxList.push_back(constExpr->getOperand(i));
+                }
+
+                Value* newGepInstr = builder.CreateInBoundsGEP(gep_ptr_type, gep_ptr, idxList);
+
+                instr.setOperand(operandIndex, newGepInstr);
+            }
+        } else if (type->isPointerTy()) {
             if (!isa<Constant>(operand)) {
                 // operand is not const. do not globalify.
                 continue;
@@ -74,41 +126,6 @@ static bool processInstruction(Module &m, IRBuilder<> &builder,
             } else {
                 instr.setOperand(operandIndex, globalifyInvocationInstr);
             }
-
-        } else if (auto *constExpr = dyn_cast<ConstantExpr>(operand)) {
-            // handle the constexpr-as-an-operand case. 
-            // the constexpr can contain references to globals.
-
-            // so far, we only care about ICmp instructions as constexpr operands.
-                // *there likely will be more.*
-            if (constExpr->getOpcode() == Instruction::ICmp) {
-
-                Value* lhs = constExpr->getOperand(0);
-                Value* rhs = constExpr->getOperand(1);
-
-                if (!isa<GlobalVariable>(lhs) && !isa<GlobalVariable>(rhs)) {
-                    continue;
-                }
-
-                builder.SetInsertPoint(&instr);
-
-                if (isa<GlobalVariable>(lhs)) {
-                    lhs = builder.CreateCall(globalifyFunc, {lhs}, "globalified_lhs");
-                }
-
-                if (isa<GlobalVariable>(rhs)) {
-                    rhs = builder.CreateCall(globalifyFunc, {rhs}, "globalified_rhs");
-                }
-
-                Value* new_instr = builder.CreateICmp(
-                    static_cast<ICmpInst::Predicate>(constExpr->getPredicate()), 
-                    lhs, 
-                    rhs, 
-                    "lowered_icmp"
-                );
-
-                instr.setOperand(operandIndex, new_instr);
-            }
         }
     }
     return oneConstGlobalified;
@@ -146,11 +163,13 @@ PreservedAnalyses run(Module &m, ModuleAnalysisManager &mam) {
             f.getName() == "__pando__replace_load_int8" ||
             f.getName() == "__pando__replace_load_float32" ||
             f.getName() == "__pando__replace_load_ptr" ||
+            f.getName() == "__pando__replace_load_vector" ||
             f.getName() == "__pando__replace_store_int64" ||
             f.getName() == "__pando__replace_store_int32" ||
             f.getName() == "__pando__replace_store_int8" ||
             f.getName() == "__pando__replace_store_float32" ||
             f.getName() == "__pando__replace_store_ptr" ||
+            f.getName() == "__pando__replace_store_vector" ||
             f.getName() == "check_if_global" || 
             f.getName() == "deglobalify" ||
             f.getName() == "globalify") {

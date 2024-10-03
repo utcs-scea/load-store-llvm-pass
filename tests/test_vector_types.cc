@@ -10,19 +10,17 @@ void modify_array() {
 }
 
 int main() {
-  printf("Initial array: ");
+  printf("Initial array: \n");
   for (int i = 0; i < 5; i++) {
-    printf("%d ", global_ptr[i]);
+    printf("%d \n", global_ptr[i]);
   }
-  printf("\n");
 
   modify_array();
 
-  printf("Modified array: ");
+  printf("Modified array: \n");
   for (int i = 0; i < 5; i++) {
-    printf("%d ", global_array[i]);
+    printf("%d \n", global_array[i]);
   }
-  printf("\n");
 
   return 0;
 }
