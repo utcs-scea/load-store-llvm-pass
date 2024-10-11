@@ -1,6 +1,7 @@
    >> globalify() invoked
    >> globalify() invoked
    >> globalify() invoked
+   >> globalify() invoked
    >> __pando__replace_store_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -17,7 +18,6 @@ Initial array:
    >> __pando__replace_load_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
-   >> globalify() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -40,7 +40,6 @@ Initial array:
    >> __pando__replace_load_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
-   >> globalify() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -63,7 +62,6 @@ Initial array:
    >> __pando__replace_load_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
-   >> globalify() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -86,7 +84,6 @@ Initial array:
    >> __pando__replace_load_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
-   >> globalify() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -109,7 +106,6 @@ Initial array:
    >> __pando__replace_load_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
-   >> globalify() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked

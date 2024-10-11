@@ -1,4 +1,6 @@
    >> globalify() invoked
+   >> globalify() invoked
+   >> globalify() invoked
    >> __pando__replace_store_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -17,7 +19,6 @@ Initial values: global_a = 10, global_b = 20
    >> __pando__replace_load_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
-   >> globalify() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -25,7 +26,6 @@ Initial values: global_a = 10, global_b = 20
    >> __pando__replace_load_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
-   >> globalify() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -36,7 +36,6 @@ Initial pointer values: *global_ptr_a = 10, *global_ptr_b = 20
    >> __pando__replace_load_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
-   >> globalify() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -47,7 +46,6 @@ Initial pointer values: *global_ptr_a = 10, *global_ptr_b = 20
    >> __pando__replace_load_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
-   >> globalify() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -70,7 +68,6 @@ After modification: global_a = 15, global_b = 40
    >> __pando__replace_load_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
-   >> globalify() invoked
    >> __pando__replace_store_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -79,7 +76,6 @@ After modification: global_a = 15, global_b = 40
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> globalify() invoked
-   >> globalify() invoked
    >> __pando__replace_store_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -87,7 +83,6 @@ After modification: global_a = 15, global_b = 40
    >> check_if_global() invoked
    >> deglobalify() invoked
    >> globalify() invoked
-   >> globalify() invoked
    >> __pando__replace_store_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -95,7 +90,6 @@ After modification: global_a = 15, global_b = 40
    >> __pando__replace_load_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
-   >> globalify() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -103,7 +97,6 @@ After modification: global_a = 15, global_b = 40
    >> __pando__replace_load_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
-   >> globalify() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -114,7 +107,6 @@ After swapping pointers: *global_ptr_a = 40, *global_ptr_b = 15
    >> __pando__replace_load_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
-   >> globalify() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
@@ -125,7 +117,6 @@ After swapping pointers: *global_ptr_a = 40, *global_ptr_b = 15
    >> __pando__replace_load_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
-   >> globalify() invoked
    >> __pando__replace_load_int32() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked

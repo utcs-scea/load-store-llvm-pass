@@ -29,21 +29,26 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
   let globalify_func = module.get_function("globalify").unwrap();
   let loadsi64_func = module.get_function("__pando__replace_load_int64").unwrap();
   let loadsi32_func = module.get_function("__pando__replace_load_int32").unwrap();
+  let loadsi16_func = module.get_function("__pando__replace_load_int16").unwrap();
   let loadsi8_func = module.get_function("__pando__replace_load_int8").unwrap();
   let loadsfl32_func = module.get_function("__pando__replace_load_float32").unwrap();
+  let loadsfl64_func = module.get_function("__pando__replace_load_float64").unwrap();
   let loadsptr_func = module.get_function("__pando__replace_load_ptr").unwrap();
   let loadsvector_func = module.get_function("__pando__replace_load_vector").unwrap();
   let storei64_func = module.get_function("__pando__replace_store_int64").unwrap();
   let storei32_func = module.get_function("__pando__replace_store_int32").unwrap();
+  let storei16_func = module.get_function("__pando__replace_store_int16").unwrap();
   let storei8_func = module.get_function("__pando__replace_store_int8").unwrap();
   let storefl32_func = module.get_function("__pando__replace_store_float32").unwrap();
+  let storefl64_func = module.get_function("__pando__replace_store_float64").unwrap();
   let storeptr_func = module.get_function("__pando__replace_store_ptr").unwrap();
   let storevector_func = module.get_function("__pando__replace_store_vector").unwrap();
   
-
   let cx = module.get_context();
   let builder = cx.create_builder();
   let fs = module.get_functions();
+
+  
 
   for f in fs {
 
@@ -51,14 +56,18 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
     match f.get_name().to_str().unwrap() {
       "__pando__replace_load_int64" => continue,
       "__pando__replace_load_int32" => continue,
+      "__pando__replace_load_int16" => continue,
       "__pando__replace_load_int8" => continue,
       "__pando__replace_load_float32" => continue,
+      "__pando__replace_load_float64" => continue,
       "__pando__replace_load_ptr" => continue,
       "__pando__replace_load_vector" => continue,
       "__pando__replace_store_int64" => continue,
       "__pando__replace_store_int32" => continue,
+      "__pando__replace_store_int16" => continue,
       "__pando__replace_store_int8" => continue,
       "__pando__replace_store_float32" => continue,
+      "__pando__replace_store_float64" => continue,
       "__pando__replace_store_ptr" => continue,
       "__pando__replace_store_vector" => continue,
       "check_if_global" => continue,
@@ -88,17 +97,31 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
                   AnyTypeEnum::IntType(int_type) => match int_type.get_bit_width() {
                     64 => loadsi64_func,
                     32 => loadsi32_func,
+                    16 => loadsi16_func,
                     8 => loadsi8_func,
                     _ => {
                       println!(
-                        "[LOAD-STORE PASS] we are attempting to instrument a LOAD 
+                        "[LOAD-STORE PASS] we are attempting to instrument an INT LOAD 
                         with a non-supported bit-width of {}. add this!", 
                         int_type.get_bit_width()
                       );
                       panic!("need to add new supported load behavior")
                     },
                   },
-                  AnyTypeEnum::FloatType(_) => loadsfl32_func,
+                  AnyTypeEnum::FloatType(float_type) => {
+                    if float_type == cx.f32_type() {
+                      loadsfl32_func
+                    } else if float_type == cx.f64_type() {
+                      loadsfl64_func
+                    } else {
+                      println!(
+                        "[LOAD-STORE PASS] we are attempting to instrument a FLOAT LOAD 
+                        of non-supported type {:?}. add this!", 
+                        float_type
+                      );
+                      panic!("need to add new supported load behavior")
+                    }
+                  },
                   AnyTypeEnum::VectorType(_) => loadsvector_func,
                   _ => loadsi64_func,
                 };
@@ -182,17 +205,32 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
               BasicValueEnum::IntValue(int_value) => match int_value.get_type().get_bit_width() {
                 64 => storei64_func,
                 32 => storei32_func,
+                16 => storei16_func,
                 8 => storei8_func,
                 _ => {
                   println!(
-                    "[LOAD-STORE PASS] we are attempting to instrument a STORE 
+                    "[LOAD-STORE PASS] we are attempting to instrument an INT STORE 
                     with a non-supported bit-width of {}. add this!", 
                     int_value.get_type().get_bit_width()
                   );
                   panic!("need to add new supported store behavior")
                 },
               },
-              BasicValueEnum::FloatValue(_) => storefl32_func,
+              BasicValueEnum::FloatValue(float_value) => {
+                let float_type = float_value.get_type();
+                if float_type == cx.f32_type() {
+                  storefl32_func
+                } else if float_type == cx.f64_type() {
+                  storefl64_func
+                } else {
+                  println!(
+                    "[LOAD-STORE PASS] we are attempting to instrument a FLOAT STORE 
+                    of non-supported type {:?}. add this!", 
+                    float_type
+                  );
+                  panic!("need to add new supported store behavior")
+                }
+              },
               BasicValueEnum::VectorValue(_) => storevector_func,
               _ => {
                 panic!("Unreachable {:#?}", operand0)
@@ -276,6 +314,7 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
             instr.replace_all_uses_with(&next_instr);
             next_instr.set_operand(0, ptr_val);
           }, // end: InstructionOpcode::Alloca
+
 
           _ => continue,
 

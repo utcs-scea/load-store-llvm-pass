@@ -36,10 +36,22 @@ void __pando__replace_store_int32(uint32_t val, uint32_t* dst) {
   *(uint32_t*) deglobalify(dst) = val;
 }
 
+void __pando__replace_store_int16(uint16_t val, uint16_t* dst) {
+  printf("   >> __pando__replace_store_int16() invoked\n");
+  assert(check_if_global(dst));
+  *(uint16_t*) deglobalify(dst) = val;
+}
+
 void __pando__replace_store_int8(uint8_t val, uint8_t* dst) {
   printf("   >> __pando__replace_store_int8() invoked\n");
   assert(check_if_global(dst));
   *(uint8_t*) deglobalify(dst) = val;
+}
+
+void __pando__replace_store_float64(double val, double* dst) {
+  printf("   >> __pando__replace_store_float64() invoked\n");
+  assert(check_if_global(dst));
+  *(double*) deglobalify(dst) = val;
 }
 
 void __pando__replace_store_float32(float val, float* dst) {
@@ -73,10 +85,22 @@ uint32_t __pando__replace_load_int32(uint32_t* src) {
   return *(uint32_t*) deglobalify(src);
 }
 
+uint16_t __pando__replace_load_int16(uint16_t* src) {
+  printf("   >> __pando__replace_load_int16() invoked\n");
+  assert(check_if_global(src));
+  return *(uint16_t*) deglobalify(src);
+}
+
 uint8_t __pando__replace_load_int8(uint8_t* src) {
   printf("   >> __pando__replace_load_int8() invoked\n");
   assert(check_if_global(src));
   return *(uint8_t*) deglobalify(src);
+}
+
+double __pando__replace_load_float64(double* src) {
+  printf("   >> __pando__replace_load_float64() invoked\n");
+  assert(check_if_global(src));
+  return *(double*) deglobalify(src);
 }
 
 float __pando__replace_load_float32(float* src) {
@@ -88,7 +112,8 @@ float __pando__replace_load_float32(float* src) {
 void* __pando__replace_load_ptr(void** src) {
   printf("   >> __pando__replace_load_ptr() invoked\n");
   assert(check_if_global(src));
-  return globalify(*(uint64_t**) deglobalify(src));
+  // return globalify(*(uint64_t**) deglobalify(src));
+  return *(uint64_t**) deglobalify(src);
 }
 
 void* __pando__replace_load_vector(void* src, size_t element_size, 

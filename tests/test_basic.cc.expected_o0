@@ -6,7 +6,6 @@
    >> __pando__replace_load_ptr() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
-   >> globalify() invoked
    >> __pando__replace_load_int64() invoked
    >> check_if_global() invoked
    >> deglobalify() invoked
