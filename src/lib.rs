@@ -31,6 +31,7 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
   let loadsi32_func = module.get_function("__pando__replace_load_int32").unwrap();
   let loadsi16_func = module.get_function("__pando__replace_load_int16").unwrap();
   let loadsi8_func = module.get_function("__pando__replace_load_int8").unwrap();
+  // let loadsi1_func = module.get_function("__pando__replace_load_int1").unwrap();
   let loadsfl32_func = module.get_function("__pando__replace_load_float32").unwrap();
   let loadsfl64_func = module.get_function("__pando__replace_load_float64").unwrap();
   let loadsptr_func = module.get_function("__pando__replace_load_ptr").unwrap();
@@ -39,6 +40,7 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
   let storei32_func = module.get_function("__pando__replace_store_int32").unwrap();
   let storei16_func = module.get_function("__pando__replace_store_int16").unwrap();
   let storei8_func = module.get_function("__pando__replace_store_int8").unwrap();
+  // let storei1_func = module.get_function("__pando__replace_store_int1").unwrap();
   let storefl32_func = module.get_function("__pando__replace_store_float32").unwrap();
   let storefl64_func = module.get_function("__pando__replace_store_float64").unwrap();
   let storeptr_func = module.get_function("__pando__replace_store_ptr").unwrap();
@@ -58,6 +60,7 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
       "__pando__replace_load_int32" => continue,
       "__pando__replace_load_int16" => continue,
       "__pando__replace_load_int8" => continue,
+      // "__pando__replace_load_int1" => continue,
       "__pando__replace_load_float32" => continue,
       "__pando__replace_load_float64" => continue,
       "__pando__replace_load_ptr" => continue,
@@ -66,6 +69,7 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
       "__pando__replace_store_int32" => continue,
       "__pando__replace_store_int16" => continue,
       "__pando__replace_store_int8" => continue,
+      // "__pando__replace_store_int1" => continue,
       "__pando__replace_store_float32" => continue,
       "__pando__replace_store_float64" => continue,
       "__pando__replace_store_ptr" => continue,
@@ -99,6 +103,7 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
                     32 => loadsi32_func,
                     16 => loadsi16_func,
                     8 => loadsi8_func,
+                    // 1 => loadsi1_func,
                     _ => {
                       println!(
                         "[LOAD-STORE PASS] we are attempting to instrument an INT LOAD 
@@ -122,12 +127,24 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
                       panic!("need to add new supported load behavior")
                     }
                   },
+                  // AnyTypeEnum::ArrayType(_) | 
                   AnyTypeEnum::VectorType(_) => loadsvector_func,
                   _ => loadsi64_func,
                 };
 
                 // build a call to the chosen loader function to load this operand 
-                let func_call: CallSiteValue =  match instr.get_type() {
+                let func_call: CallSiteValue = match instr.get_type() {
+                  // AnyTypeEnum::ArrayType(arr_type) => {
+                  //   builder.build_direct_call(
+                  //     func,
+                  //     &[
+                  //       operand.into(), 
+                  //       arr_type.get_element_type().size_of().unwrap().into(), 
+                  //       cx.i64_type().const_int(arr_type.len().into(), false).into()
+                  //     ],
+                  //     "loads_func"
+                  //   )
+                  // },
                   AnyTypeEnum::VectorType(vec_type) => {
                     builder.build_direct_call(
                       func,
@@ -151,6 +168,15 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
                 // extract the result of the function call as an instruction
                 let replace_instr: InstructionValue = match func_call.try_as_basic_value() {
                   Either::Left(basic_value) => match instr.get_type() {
+                    // AnyTypeEnum::ArrayType(arr_type) => {
+                    //   builder.build_load(arr_type, 
+                    //                      basic_value.into_pointer_value(),
+                    //                      "loaded_vector")
+                    //     .unwrap()
+                    //     .into_array_value()
+                    //     .as_instruction()
+                    //     .unwrap()
+                    // }, 
                     AnyTypeEnum::VectorType(vec_type) => {
                       builder.build_load(vec_type, 
                                          basic_value.into_pointer_value(),
@@ -207,6 +233,7 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
                 32 => storei32_func,
                 16 => storei16_func,
                 8 => storei8_func,
+                // 1 => storei1_func,
                 _ => {
                   println!(
                     "[LOAD-STORE PASS] we are attempting to instrument an INT STORE 
@@ -231,6 +258,7 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
                   panic!("need to add new supported store behavior")
                 }
               },
+              // BasicValueEnum::ArrayValue(_) | 
               BasicValueEnum::VectorValue(_) => storevector_func,
               _ => {
                 panic!("Unreachable {:#?}", operand0)
@@ -239,39 +267,64 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
         
             // build a call to the chosen storing function to store this operand 
             let func_call: CallSiteValue = match operand0 {
-                BasicValueEnum::VectorValue(vec_val) => {
-                  let vec_type = vec_val.get_type();
-                  
-                  builder.position_before(&instr);
+              // BasicValueEnum::ArrayValue(arr_val) => {
+              //   let arr_type = arr_val.get_type();
+                
+              //   builder.position_before(&instr);
 
-                  let alloca_buffer = builder.build_alloca(vec_type, "alloca_buffer").unwrap();
-                  builder.build_store(alloca_buffer, vec_val).unwrap();
+              //   let alloca_buffer = builder.build_alloca(arr_type, "alloca_buffer").unwrap();
+              //   builder.build_store(alloca_buffer, arr_val).unwrap();
 
-                  let ptr_type = cx.ptr_type(AddressSpace::from(0));
-                  let casted_alloca_buffer = builder
-                    .build_bit_cast(alloca_buffer, ptr_type, "casted_alloca_buffer").unwrap();
+              //   let ptr_type = cx.ptr_type(AddressSpace::from(0));
+              //   let casted_alloca_buffer = builder
+              //     .build_bit_cast(alloca_buffer, ptr_type, "casted_alloca_buffer").unwrap();
 
-                  builder.position_at(b, &instr);
+              //   builder.position_at(b, &instr);
 
-                  builder.build_direct_call(
-                    func,
-                    &[
-                      casted_alloca_buffer.into(),
-                      operand1.into(),
-                      vec_type.get_element_type().size_of().unwrap().into(),
-                      cx.i64_type().const_int(vec_type.get_size().into(), false).into()
-                    ],
-                    "vec_stores_func"
-                  )
-                },
-                _ => {
-                  builder.build_direct_call(
-                    func,
-                    &[operand0.into(), operand1.into()],
-                    "stores_func"
-                  )
-                }
-              }.unwrap();
+              //   builder.build_direct_call(
+              //     func,
+              //     &[
+              //       casted_alloca_buffer.into(),
+              //       operand1.into(),
+              //       arr_type.get_element_type().size_of().unwrap().into(),
+              //       cx.i64_type().const_int(arr_type.len().into(), false).into()
+              //     ],
+              //     "arr_stores_func"
+              //   )
+              // },
+              BasicValueEnum::VectorValue(vec_val) => {
+                let vec_type = vec_val.get_type();
+                
+                builder.position_before(&instr);
+
+                let alloca_buffer = builder.build_alloca(vec_type, "alloca_buffer").unwrap();
+                builder.build_store(alloca_buffer, vec_val).unwrap();
+
+                let ptr_type = cx.ptr_type(AddressSpace::from(0));
+                let casted_alloca_buffer = builder
+                  .build_bit_cast(alloca_buffer, ptr_type, "casted_alloca_buffer").unwrap();
+
+                builder.position_at(b, &instr);
+
+                builder.build_direct_call(
+                  func,
+                  &[
+                    casted_alloca_buffer.into(),
+                    operand1.into(),
+                    vec_type.get_element_type().size_of().unwrap().into(),
+                    cx.i64_type().const_int(vec_type.get_size().into(), false).into()
+                  ],
+                  "vec_stores_func"
+                )
+              },
+              _ => {
+                builder.build_direct_call(
+                  func,
+                  &[operand0.into(), operand1.into()],
+                  "stores_func"
+                )
+              }
+            }.unwrap();
             
             // extract the result of the function call as an instruction
             let replace_instr = match func_call.try_as_basic_value() {
@@ -282,6 +335,9 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
                   basic_value.into_int_value().as_instruction().unwrap()
                 } else if basic_value.is_float_value() {
                   basic_value.into_float_value().as_instruction().unwrap()
+                // } else if basic_value.is_array_value() {
+                //   println!("[LOAD-STORE PASS] We should not get a array type back from a store.");
+                //   panic!("This is unreachable for the call type.")
                 } else if basic_value.is_vector_value() {
                   println!("[LOAD-STORE PASS] We should not get a vector type back from a store.");
                   panic!("This is unreachable for the call type.")
@@ -314,7 +370,6 @@ fn run_pass(&self, module: &mut Module, _manager: &ModuleAnalysisManager) -> Pre
             instr.replace_all_uses_with(&next_instr);
             next_instr.set_operand(0, ptr_val);
           }, // end: InstructionOpcode::Alloca
-
 
           _ => continue,
 

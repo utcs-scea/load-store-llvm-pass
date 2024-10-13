@@ -8,8 +8,8 @@ do
     diff "$test".expected "$test".out > /dev/null
     ret=$?
     if [[ $ret -ne 0 ]]; then
-        echo "$test" FAILED
+        echo "$test" \(O3\) FAILED
     else 
-        echo "$test" passed
+        echo "$test" \(O3\) passed
     fi
 done

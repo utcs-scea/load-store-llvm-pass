@@ -16,7 +16,7 @@ using namespace llvm;
 
 namespace {
 
-struct GlobalizeGlobalUnnamedPointersPass : public PassInfoMixin<GlobalizeGlobalUnnamedPointersPass> {
+struct RemotifyGlobalPtrVarsPass : public PassInfoMixin<RemotifyGlobalPtrVarsPass> {
 
 bool shouldGlobalizeVariable(const GlobalVariable &gv) {
     if (gv.hasExternalLinkage() && gv.isDeclaration())
@@ -74,26 +74,33 @@ PreservedAnalyses run(Module &m, ModuleAnalysisManager &mam) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-struct UnwrapLibFnCallParamsPass : public PassInfoMixin<UnwrapLibFnCallParamsPass> {
+struct WrapLibFnCallsPass : public PassInfoMixin<WrapLibFnCallsPass> {
 
 PreservedAnalyses run(Module &m, ModuleAnalysisManager &mam) {
     bool anyOperandsAltered = false;
 
-    Function *deglobalifyFunc = m.getFunction("deglobalify");
-    if (!deglobalifyFunc) {
-        errs() << "[UNWRAPLIBFNCALLPARAMS PASS] -- deglobalify function not found. exiting early.\n";
+    Function *globalifyFunc = m.getFunction("globalify");
+    if (!globalifyFunc) {
+        errs() << "[WrapLibFnCallsPass] -- globalify function not found. exiting early.\n";
         return PreservedAnalyses::all();
     }
 
-    const TargetLibraryInfo *tli; 
+    Function *deglobalifyFunc = m.getFunction("deglobalify");
+    if (!deglobalifyFunc) {
+        errs() << "[WrapLibFnCallsPass] -- deglobalify function not found. exiting early.\n";
+        return PreservedAnalyses::all();
+    }
+
+    Triple moduleTriple(m.getTargetTriple());
+    TargetLibraryInfoImpl tlii(moduleTriple);
+    TargetLibraryInfo tli(tlii);
     LibFunc inbuiltFunc;
     std::set<StringRef> builtins;
     for (Function &f : m) {
-        if(tli->getLibFunc(f, inbuiltFunc)) {
+        if(tli.getLibFunc(f, inbuiltFunc)) {
             builtins.insert(f.getFunction().getName());
         }
     }
-
 
     IRBuilder<> builder(m.getContext());
 
@@ -105,6 +112,7 @@ PreservedAnalyses run(Module &m, ModuleAnalysisManager &mam) {
             f.getName() == "__pando__replace_load_int32" ||
             f.getName() == "__pando__replace_load_int16" ||
             f.getName() == "__pando__replace_load_int8" ||
+            // f.getName() == "__pando__replace_load_int1" ||
             f.getName() == "__pando__replace_load_float32" ||
             f.getName() == "__pando__replace_load_float64" ||
             f.getName() == "__pando__replace_load_ptr" ||
@@ -113,6 +121,7 @@ PreservedAnalyses run(Module &m, ModuleAnalysisManager &mam) {
             f.getName() == "__pando__replace_store_int32" ||
             f.getName() == "__pando__replace_store_int16" ||
             f.getName() == "__pando__replace_store_int8" ||
+            // f.getName() == "__pando__replace_store_int1" ||
             f.getName() == "__pando__replace_store_float32" ||
             f.getName() == "__pando__replace_store_float64" ||
             f.getName() == "__pando__replace_store_ptr" ||
@@ -127,59 +136,62 @@ PreservedAnalyses run(Module &m, ModuleAnalysisManager &mam) {
         for (BasicBlock &bb : f) {
             for (Instruction &instr : bb) {
                 if (CallInst* callInstr = dyn_cast<CallInst>(&instr)) {
-
-                    // errs() << "\ninstr is " << instr << "\n";
-                    
                     Function* calledFunction = callInstr->getCalledFunction();
-                    if (!calledFunction) {
-                        // for now, let's not modify indirect function calls...
-                        indirect_calls++;
-                        continue;
-                    } else {
+                    if (calledFunction) {
                         direct_calls++;
+                        StringRef funcName = calledFunction->getName();
+                        if (m.getFunction(funcName) && 
+                            calledFunction->getIntrinsicID() == 0 && 
+                            builtins.count(funcName) == 0) {
+                            // if it's 
+                            //  - in the module 
+                            //  - it isn't an intrinsic (id == 0) 
+                            //  - it isn't a library function
+                            // we will skip this function.
+                            continue;
+                        } 
+                    } else {
+                        // modify all indirect calls since we don't know what the function is
+                        indirect_calls++;
                     }
-
-                    StringRef funcName = calledFunction->getName();
-                    
-                    bool print = false;
-
-                    if (m.getFunction(funcName) && 
-                        calledFunction->getIntrinsicID() == 0 && 
-                        builtins.count(funcName) == 0) {
-                        // if it's 
-                        //  - in the module 
-                        //  - it isn't an intrinsic (id == 0) 
-                        //  - it isn't a library function
-                        // we will skip this function.
-                        continue;
-                    } 
-
-                    // errs() << "we will modify this instr\n"; 
 
                     // else, this is a call to a library function or intrinsic.
 
+                    // iterate over the operands...
                     uint64_t numOperands = instr.getNumOperands();
-
                     for(uint64_t operandIdx = 0; operandIdx < numOperands - 1; operandIdx++) {
                         Value* operand = instr.getOperand(operandIdx);
-                        if(print) errs() << "  operand #" << operandIdx << " is " << *operand << "\n";
                         if(operand->getType()->isPointerTy()) {
-                            if(print) errs() << "  it's a pointer type too. downgrade.\n"; 
                             builder.SetInsertPoint(&instr);
-                            Value* deglobalified_ptr = builder
-                                .CreateCall(deglobalifyFunc, {operand}, "lib_deglobalified_ptr");
+                            Value* deglobalified_ptr = builder.CreateCall(
+                                deglobalifyFunc, 
+                                {operand}, 
+                                "deglobalified_lib_ptr");
                             instr.setOperand(operandIdx, deglobalified_ptr);
                             anyOperandsAltered = true;
                         }
-                        if(print) errs() << "instr is now" << instr << "\n";
+                    }
+
+                    // ...then check the function's return type...
+                    if(instr.getType()->isPointerTy()) {
+                        builder.SetInsertPoint(instr.getNextNode());
+                        Instruction* globalified_ptr = builder.CreateCall(
+                            globalifyFunc,
+                            {dyn_cast<Value>(&instr)},
+                            "globalified_lib_ptr");
+                        instr.replaceAllUsesWith(globalified_ptr);
+
+                        // replaceAllUsesWith() will replace the pointer we just passed into
+                        // the globalify function call, so we now have to undo that...
+                        globalified_ptr->setOperand(0, dyn_cast<Value>(&instr));
                     }
                 }
             }
         }
     }
 
-    errs() << "direct calls: " << direct_calls << "\n";
-    errs() << "indirect calls: " << indirect_calls << "\n";
+    // errs() << "direct calls: " << direct_calls << "\n";
+    // errs() << "indirect calls: " << indirect_calls << "\n";
 
     return anyOperandsAltered ? PreservedAnalyses::none()
                             : PreservedAnalyses::all();
@@ -278,36 +290,7 @@ static bool processInstruction(Module &m, IRBuilder<> &builder,
             Value *globalifyInvocationInstr = builder.CreateCall(
                 globalifyFunc, {operand}, "globalified_ptr");
 
-            // @Sun: this logic may not be correct long-term depending on how we implement
-            // global/local addresses across function boundaries, especially regarding
-            // library functions.
-            if (instrOpcode == Instruction::Call || 
-                instrOpcode == Instruction::CallBr || 
-                instrOpcode == Instruction::Invoke) {
-
-                if (operand->getType()->isPointerTy()) {
-                    // we just deglobalize it for use inside the function
-
-                    // @Sun: this is kinda gross and we should change this later.
-                    
-                    Value* deglobalifyInvocationInstr = builder.CreateCall(
-                        deglobalifyFunc, 
-                        {globalifyInvocationInstr}, 
-                        "deglobalified_ptr"
-                    );
-
-                    instr.setOperand(operandIndex, deglobalifyInvocationInstr);
-                } else {
-                    // add a load which will get transformed by the load/store pass
-                    LoadInst* load_instr = builder.CreateLoad(
-                    type, globalifyInvocationInstr, "globalified_ptr_loaded");
-
-                    instr.setOperand(operandIndex, load_instr);
-                }
-            } else {
-                instr.setOperand(operandIndex, globalifyInvocationInstr);
-            }
-            
+            instr.setOperand(operandIndex, globalifyInvocationInstr);
         }
     }
     return oneConstGlobalified;
@@ -345,6 +328,7 @@ PreservedAnalyses run(Module &m, ModuleAnalysisManager &mam) {
             f.getName() == "__pando__replace_load_int32" ||
             f.getName() == "__pando__replace_load_int16" ||
             f.getName() == "__pando__replace_load_int8" ||
+            // f.getName() == "__pando__replace_load_int1" ||
             f.getName() == "__pando__replace_load_float32" ||
             f.getName() == "__pando__replace_load_float64" ||
             f.getName() == "__pando__replace_load_ptr" ||
@@ -353,6 +337,7 @@ PreservedAnalyses run(Module &m, ModuleAnalysisManager &mam) {
             f.getName() == "__pando__replace_store_int32" ||
             f.getName() == "__pando__replace_store_int16" ||
             f.getName() == "__pando__replace_store_int8" ||
+            // f.getName() == "__pando__replace_store_int1" ||
             f.getName() == "__pando__replace_store_float32" ||
             f.getName() == "__pando__replace_store_float64" ||
             f.getName() == "__pando__replace_store_ptr" ||
@@ -410,11 +395,11 @@ extern "C" LLVM_ATTRIBUTE_WEAK ::llvm::PassPluginLibraryInfo llvmGetPassPluginIn
                     if (name == "globalize-pass") {
                         mpm.addPass(GlobalizePass());
                         return true;
-                    } else if (name == "unwrap-lib-fn-call-params-pass") {
-                        mpm.addPass(UnwrapLibFnCallParamsPass());
+                    } else if (name == "wrap-lib-fn-calls-pass") {
+                        mpm.addPass(WrapLibFnCallsPass());
                         return true;
-                    } else if (name == "globalize-global-unnamed-pointers-pass") {
-                        mpm.addPass(GlobalizeGlobalUnnamedPointersPass());
+                    } else if (name == "remotify-global-ptr-vars-pass") {
+                        mpm.addPass(RemotifyGlobalPtrVarsPass());
                         return true;
                     }
                     return false;

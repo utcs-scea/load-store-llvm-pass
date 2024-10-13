@@ -48,6 +48,12 @@ void __pando__replace_store_int8(uint8_t val, uint8_t* dst) {
   *(uint8_t*) deglobalify(dst) = val;
 }
 
+// void __pando__replace_store_int1(bool val, bool* dst) {
+//   printf("   >> __pando__replace_store_int1() invoked\n");
+//   assert(check_if_global(dst));
+//   *(bool*) deglobalify(dst) = val;
+// }
+
 void __pando__replace_store_float64(double val, double* dst) {
   printf("   >> __pando__replace_store_float64() invoked\n");
   assert(check_if_global(dst));
@@ -96,6 +102,12 @@ uint8_t __pando__replace_load_int8(uint8_t* src) {
   assert(check_if_global(src));
   return *(uint8_t*) deglobalify(src);
 }
+
+// bool __pando__replace_load_int1(bool* src) {
+//   printf("   >> __pando__replace_load_int1() invoked\n");
+//   assert(check_if_global(src));
+//   return *(bool*) deglobalify(src);
+// }
 
 double __pando__replace_load_float64(double* src) {
   printf("   >> __pando__replace_load_float64() invoked\n");

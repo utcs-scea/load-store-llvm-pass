@@ -1,15 +1,16 @@
 CXX = clang++
 OPT = opt
 
-CXXFLAGS = -std=c++11 -Wall -Wextra -O3
+OPTFLAG = -O3
+CXXFLAGS = -std=c++11 -Wall -Wextra $(OPTFLAG)
 
 CPP_PASSFILE += --load-pass-plugin=../../build/LLVMGlobalizePass.so
 RUSTPASSFILE += --load-pass-plugin=../../target/debug/libload_store_llvm_pass.dylib
 
 GLOBALIZEPASS += --passes=globalize-pass
 LOADSTOREPASS += --passes=load-store-pass
-LIBPARAMSPASS += --passes=unwrap-lib-fn-call-params-pass
-UNNAMEDGLOBALPTRSPASS += --passes=globalize-global-unnamed-pointers-pass
+LIBFNCALLSPASS += --passes=wrap-lib-fn-calls-pass
+GLOBALPTRSPASS += --passes=remotify-global-ptr-vars-pass
 
 all: bfs.out bfs_pass.out
 
@@ -18,12 +19,12 @@ bfs.out: bfs.cc
 
 bfs_pass.out: bfs.cc
 	$(CXX) -S $(CXXFLAGS) $< -emit-llvm -o $@.base.ll
-	llvm-link -S $@.base.ll ../../tests/pando_functions.ll -o $@.linked.ll
+	llvm-link -S $@.base.ll ../../pando_functions.ll -o $@.linked.ll
 	$(OPT) -S $(CPP_PASSFILE) $(GLOBALIZEPASS) $@.linked.ll -o $@.globalized.ll
 	$(OPT) -S $(RUSTPASSFILE) $(LOADSTOREPASS) $@.globalized.ll -o $@.load_store.ll
-	$(OPT) -S $(CPP_PASSFILE) $(LIBPARAMSPASS) $@.load_store.ll -o $@.lib_params.ll
-	$(OPT) -S $(CPP_PASSFILE) $(UNNAMEDGLOBALPTRSPASS) $@.lib_params.ll -o $@.unnamedglobalptrs.ll
-	$(CXX) -S -flto $(CXXFLAGS) $@.unnamedglobalptrs.ll -emit-llvm -o $@.final.ll
+	$(OPT) -S $(CPP_PASSFILE) $(LIBFNCALLSPASS) $@.load_store.ll -o $@.lib_params.ll
+	$(OPT) -S $(CPP_PASSFILE) $(GLOBALPTRSPASS) $@.lib_params.ll -o $@.globalptrs.ll
+	$(CXX) -S -flto $(CXXFLAGS) $@.globalptrs.ll -emit-llvm -o $@.final.ll
 	$(CXX) -flto $(CXXFLAGS) $@.final.ll -o $@
 
 clean:
