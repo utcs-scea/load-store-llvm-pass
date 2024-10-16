@@ -1,4 +1,3 @@
-#include <iostream>
 #include <vector>
 #include <queue>
 #include <random>
@@ -16,11 +15,21 @@ public:
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_int_distribution<> dis(0, n - 1);
+        
+        row_ptr.reserve(n * 1.5);
+        col_idx.reserve(n * d * 1.5);
+
+        // printf("graph constructor: objects initialized.\n");
 
         row_ptr.push_back(0);
+
+        // printf("graph constructor: push first to row_ptr.\n");
+
         for (int i = 0; i < n; ++i) {
+            // printf("graph constructor: inside outer loop, %d\n", i);
             int degree = std::poisson_distribution<>(d)(gen);
             for (int j = 0; j < degree; ++j) {
+                // printf("graph constructor: inside inner loop, %d", j);
                 int neighbor = dis(gen);
                 if (neighbor != i) {
                     col_idx.push_back(neighbor);
@@ -28,6 +37,8 @@ public:
             }
             row_ptr.push_back(col_idx.size());
         }
+
+        // printf("graph built\n");
     }
 
     std::vector<int> bfs_sssp(int start) const {
@@ -57,19 +68,25 @@ public:
 };
 
 void print_usage() {
-    std::cout << "Usage: ./program [-n rounds] [-g graph_size_power] [-d avg_degree] [-p]" << std::endl;
-    std::cout << "  -n [int] : number of rounds of BFS-based SSSP to run (default: 10)" << std::endl;
-    std::cout << "  -g [int] : defines the size of the graph. 2^(the int provided) (default: 20)" << std::endl;
-    std::cout << "  -d [int] : average degree of each vertex in the graph (default: 16)" << std::endl;
-    std::cout << "  -p       : if present, print debug output" << std::endl;
-    std::cout << "  -h       : print this help message" << std::endl;
+    // std::cout << "Usage: ./program [-n rounds] [-g graph_size_power] [-d avg_degree] [-p]" << std::endl;
+    // std::cout << "  -n [int] : number of rounds of BFS-based SSSP to run (default: 10)" << std::endl;
+    // std::cout << "  -g [int] : defines the size of the graph. 2^(the int provided) (default: 20)" << std::endl;
+    // std::cout << "  -d [int] : average degree of each vertex in the graph (default: 16)" << std::endl;
+    // std::cout << "  -p       : if present, print debug output" << std::endl;
+    // std::cout << "  -h       : print this help message" << std::endl;
+    printf("Usage: ./program [-n rounds] [-g graph_size_power] [-d avg_degree] [-p]\n");
+    printf("  -n [int] : number of rounds of BFS-based SSSP to run (default: 10)\n");
+    printf("  -g [int] : defines the size of the graph. 2^(the int provided) (default: 20)\n");
+    printf("  -d [int] : average degree of each vertex in the graph (default: 16)\n");
+    printf("  -p       : if present, print debug output\n");
+    printf("  -h       : print this help message\n");
 }
 
 int main(int argc, char* argv[]) {
     int num_rounds = 10;
     int graph_size_power = 20;
     int avg_degree = 16;
-    bool print_debug = false;
+    bool print_debug = true;
 
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-n") == 0 && i + 1 < argc) {
@@ -89,10 +106,15 @@ int main(int argc, char* argv[]) {
     int num_vertices = 1 << graph_size_power;
 
     if (print_debug) {
-        std::cout << "Initializing graph with " << num_vertices << " vertices and average degree " << avg_degree << std::endl;
+        // std::cout << "Initializing graph with " << num_vertices << " vertices and average degree " << avg_degree << std::endl;
+        printf("Initializing graph with %d vertices and average degree %d\n", num_vertices, avg_degree);
     }
 
     Graph graph(num_vertices, avg_degree);
+
+    if (print_debug) {
+        printf("graph initialized.\n");
+    }
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -105,20 +127,23 @@ int main(int argc, char* argv[]) {
         int end_vertex = dis(gen);
 
         if (print_debug) {
-            std::cout << "Round " << round + 1 << ": BFS-SSSP from vertex " << start_vertex << " to " << end_vertex << std::endl;
+            // std::cout << "Round " << round + 1 << ": BFS-SSSP from vertex " << start_vertex << " to " << end_vertex << std::endl;
+            printf("Round %d: BFS-SSSP from vertex %d to %d\n", round + 1, start_vertex, end_vertex);
         }
 
         std::vector<int> distances = graph.bfs_sssp(start_vertex);
 
         if (print_debug) {
-            std::cout << "  Distance: " << distances[end_vertex] << std::endl;
+            // std::cout << "  Distance: " << distances[end_vertex] << std::endl;
+            printf("  Distance: %d\n", distances[end_vertex]);
         }
     }
 
     auto end_time = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
-    std::cout << "Completed " << num_rounds << " rounds of BFS-SSSP in " << duration.count() << " ms" << std::endl;
+    printf("Completed %d rounds of BFS-SSSP in %lld ms\n", num_rounds, duration.count());
+    // std::cout << "Completed " << num_rounds << " rounds of BFS-SSSP in " << duration.count() << " ms" << std::endl;
 
     return 0;
 }

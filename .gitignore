@@ -6,6 +6,7 @@
 
 # benchmarks
 benchmarks/sun_bfs/*.ll
+benchmarks/sun_bfs/*.out
 
 # tests
 tests/*.out
